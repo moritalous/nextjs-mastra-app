@@ -1,61 +1,45 @@
-FROM public.ecr.aws/docker/library/node:22.11.0-slim AS base
+FROM public.ecr.aws/docker/library/node:22.11.0-slim
 
-# 依存関係のインストール
-FROM base AS deps
+### Pythonは使ってないっぽいので一旦コメントアウト
+# RUN apt-get update && \
+#     apt-get install -y curl tar gzip ca-certificates --no-install-recommends && \
+#     rm -rf /var/lib/apt/lists/*
+
+# RUN curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/local/bin" sh
+# RUN uv python install 3.10
+
 WORKDIR /app
-COPY package.json package-lock.json* ./
+
+## Nodeライブラリー取得
+COPY package.json package-lock.json /app/
 RUN npm ci
 
-# ビルドステージ
-FROM base AS builder
-# uv と Python のインストールに必要なツールをインストール
-USER root
-RUN apt-get update && apt-get install -y curl tar gzip ca-certificates --no-install-recommends && rm -rf /var/lib/apt/lists/*
-
-# node ユーザーに切り替え、ホーム配下に uv/uvx をインストール
-USER node
-ENV HOME=/home/node \
-    PATH="/home/node/.local/bin:${PATH}"
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-RUN uv python install 3.10
-
-# アプリケーションコードの処理に戻る
-# ベースイメージのデフォルトユーザー (node) に戻す
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-
-# アプリケーションディレクトリの所有権を node ユーザーに変更
-# chown を実行するために一時的に root に切り替え
-USER 0
-RUN chown -R node:node /app
-# 再度 node ユーザーに戻す
-USER node
-
-# これで uvx コマンドが利用可能 & 書き込み権限があるはず
+## Next.jsのビルド
+COPY eslint.config.mjs next.config.ts postcss.config.mjs tsconfig.json /app/
+COPY public /app/public/
+COPY src /app/src/
 RUN npm run build
 
-FROM base AS runner
+## Next.jsのstandaloneモードのときはコピーすると良いらしい（？）
+## https://nextjs.org/docs/pages/api-reference/config/next-config-js/output
+RUN cp -r public .next/standalone/
+RUN cp -r .next/static .next/standalone/.next/
+
+## AWS Lambda Web Adapterを取得
 COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.9.0 /lambda-adapter /opt/extensions/lambda-adapter
 
-# Lambdaの権限問題を解決するための環境変数
+## 環境変数設定
+## https://github.com/awslabs/aws-lambda-web-adapter/tree/main/examples/nextjs
 ENV PORT=3000 NODE_ENV=production
 ENV AWS_LWA_ENABLE_COMPRESSION=true
-ENV HOME=/tmp
-ENV npm_config_cache=/tmp/.npm
+RUN ln -s /tmp/cache ./.next/cache
 
-WORKDIR /app
+# Lambda実行時に取得するとエラーになるので、MCPサーバーをここで取得しておく
+RUN npm install @modelcontextprotocol/server-brave-search
 
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-
-# キャッシュディレクトリの設定
-RUN mkdir -p /tmp/cache && ln -s /tmp/cache ./.next/cache
-
-# 拡張した起動スクリプト
-RUN echo '#!/bin/bash -x\n[ ! -d "/tmp/cache" ] && mkdir -p /tmp/cache\n[ ! -d "/tmp/.npm" ] && mkdir -p /tmp/.npm\nexport HOME=/tmp\nexport npm_config_cache=/tmp/.npm\nexec node server.js' > ./run.sh && chmod +x ./run.sh
+## 起動ファイル
+COPY run.sh /app/
+RUN chmod +x run.sh
 
 EXPOSE 3000
 

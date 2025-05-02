@@ -5,13 +5,21 @@ import { MCPConfiguration } from "@mastra/mcp";
 const bedrock = initializeBedrockClient();
 
 export async function createBlogIdeaAgent(){
+  let command = "npx";
+  let args = ["-y", "@modelcontextprotocol/server-brave-search"];
+  
+  if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    command = "/app/node_modules/.bin/mcp-server-brave-search";
+    args = [];
+  }
+  
   const mcp = new MCPConfiguration({
     id: "brave-search-mcp",
     servers: {
       // stdio example
       github: {
-        command: "npx",
-        args: ["-y", "@modelcontextprotocol/server-brave-search"],
+        command: command,
+        args: args,
         env: {
           BRAVE_API_KEY: process.env.BRAVE_API_KEY ?? "",
         },
