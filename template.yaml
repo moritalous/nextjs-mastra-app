@@ -23,7 +23,7 @@ Resources:
           LANGFUSE_SECRET_KEY: put-your-value
           LANGFUSE_BASE_URL: put-your-value
       FunctionUrlConfig:
-        AuthType: AWS_IAM
+        AuthType: NONE
         InvokeMode: RESPONSE_STREAM
       Policies:
         - arn:aws:iam::aws:policy/AmazonBedrockFullAccess
