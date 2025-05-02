@@ -1,6 +1,6 @@
 // ブログレビュー用のストリーミングAPIルート
 import { NextRequest } from "next/server";
-import { mastra } from "@/mastra";
+import { getMastra } from "@/mastra";
 
 export async function POST(req: NextRequest) {
   // リクエストボディからデータを取得
@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
   }
 
   // エージェントを取得
+  const mastra = await getMastra();
   const agent = mastra.getAgent("blogReviewAgent");
   
   // セッションIDを生成

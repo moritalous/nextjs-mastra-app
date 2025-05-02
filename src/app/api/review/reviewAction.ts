@@ -1,6 +1,6 @@
 "use server";
 
-import { mastra } from "@/mastra";
+import { getMastra } from "@/mastra";
 
 // ブログレビュー用の入力型定義
 type ReviewInput = {
@@ -18,6 +18,7 @@ export async function reviewBlogPost(input: ReviewInput): Promise<{ sessionId: s
   }
 
   try {
+    const mastra = await getMastra();
     // Mastraエージェントを取得
     const agent = mastra.getAgent("blogReviewAgent");
     

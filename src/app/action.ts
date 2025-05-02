@@ -1,6 +1,6 @@
 "use server";
 
-import { mastra } from "@/mastra";
+import { getMastra } from "@/mastra";
 import { revalidatePath } from "next/cache";
 
 // リアルタイムで取得したトレースを保存するグローバル変数
@@ -28,6 +28,7 @@ export async function addTrace(trace: string) {
 export async function getLatestUpdate(prevState: unknown, formData: FormData) {
   const tech = JSON.parse(formData.get("tech") as string);
   const targetAudience = JSON.parse(formData.get("targetAudience") as string);
+  const mastra = await getMastra();
   const agent = mastra.getAgent("blogIdeaAgent");
 
   // エージェントのトレース情報を収集するための配列

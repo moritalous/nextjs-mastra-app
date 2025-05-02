@@ -1,6 +1,6 @@
 // サーバーアクションとストリーミングを実装するためのファイル
 import { NextRequest } from "next/server";
-import { mastra } from "@/mastra";
+import { getMastra } from "@/mastra";
 
 // Streamable関数
 export async function POST(req: NextRequest) {
@@ -8,6 +8,7 @@ export async function POST(req: NextRequest) {
   const { tech, targetAudience } = await req.json();
 
   // エージェントを取得
+  const mastra = await getMastra();
   const agent = mastra.getAgent("blogIdeaAgent");
 
   // レスポンスヘッダーを設定
