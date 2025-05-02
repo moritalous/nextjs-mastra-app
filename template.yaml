@@ -25,6 +25,8 @@ Resources:
       FunctionUrlConfig:
         AuthType: AWS_IAM
         InvokeMode: RESPONSE_STREAM
+      Policies:
+        - arn:aws:iam::aws:policy/AmazonBedrockFullAccess
     Metadata:
       DockerTag: v1
       DockerContext: ./
